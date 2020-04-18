@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableList;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import java.util.Arrays;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import shardingsphere.workshop.mysql.proxy.fixture.MySQLAuthenticationHandler;
@@ -67,11 +68,17 @@ public final class FrontendChannelInboundHandler extends ChannelInboundHandlerAd
         // TODO 1. Read SQL from payload, then system.out it
         // TODO 2. Return mock MySQLPacket to client (header: MySQLFieldCountPacket + MySQLColumnDefinition41Packet + MySQLEofPacket, content: MySQLTextResultSetRowPacket
         // TODO 3. Parse SQL, return actual data according to SQLStatement
-        context.write(new MySQLFieldCountPacket(1, 1));
-        context.write(new MySQLColumnDefinition41Packet(2, 0, "sharding_db", "t_order", "t_order", "order_id", "order_id", 100, MySQLColumnType.MYSQL_TYPE_STRING,0));
-        context.write(new MySQLEofPacket(3));
-        context.write(new MySQLTextResultSetRowPacket(4, ImmutableList.of(100)));
-        context.write(new MySQLEofPacket(5));
+
+        System.out.println("查询Sql:"+payload.readStringEOF());
+
+
+        context.write(new MySQLFieldCountPacket(1, 2));
+        context.write(new MySQLColumnDefinition41Packet(2, 0, "sharding_db", "t_order", "t_order", "user_id", "user_id", 100, MySQLColumnType.MYSQL_TYPE_STRING,0));
+        context.write(new MySQLColumnDefinition41Packet(3, 0, "sharding_db", "t_order", "t_order", "order_id", "order_id", 100, MySQLColumnType.MYSQL_TYPE_STRING,0));
+        context.write(new MySQLEofPacket(4));
+        context.write(new MySQLTextResultSetRowPacket(5, Arrays.asList(1,200)));
+        context.write(new MySQLTextResultSetRowPacket(6, Arrays.asList(2,300)));
+        context.write(new MySQLEofPacket(7));
         context.flush();
     }
 }
