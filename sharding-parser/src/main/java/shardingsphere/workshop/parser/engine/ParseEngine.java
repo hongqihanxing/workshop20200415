@@ -25,7 +25,8 @@ public final class ParseEngine {
      */
     public static ASTNode parse(final String sql) {
         ParseTree parseTree = createParseTree(sql);
-        return new SQLVisitor().visit(parseTree.getChild(0));
+        ASTNode node = new SQLVisitor().visit(parseTree.getChild(0));
+        return node;
     }
     
     private static ParseTree createParseTree(final String sql) {

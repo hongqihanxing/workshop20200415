@@ -18,6 +18,7 @@
 package shardingsphere.workshop.parser.engine;
 
 import org.junit.Test;
+import shardingsphere.workshop.parser.statement.segment.SelectSegment;
 import shardingsphere.workshop.parser.statement.statement.UseStatement;
 
 import static org.hamcrest.Matchers.is;
@@ -30,5 +31,12 @@ public final class ParseEngineTest {
         String sql = "use sharding_db";
         UseStatement useStatement = (UseStatement) ParseEngine.parse(sql);
         assertThat(useStatement.getSchemeName().getIdentifier().getValue(), is("sharding_db"));
+    }
+
+    @Test
+    public void testSelectParse(){
+        String sql = "select * from user where id=1";
+        SelectSegment selectSegment = (SelectSegment) ParseEngine.parse(sql);
+        assertThat(selectSegment.getConditionSegment().getColValueSegment().getIdentifier().getValue(),is("1"));
     }
 }

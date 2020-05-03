@@ -6,5 +6,5 @@ import Symbol, SQLStatement;
 execute
     : (use
     | insert
-    ) SEMI_?
+    |select) SEMI_?
     ;

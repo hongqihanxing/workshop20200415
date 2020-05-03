@@ -38,4 +38,27 @@ tableName
 identifier
     : IDENTIFIER_ | STRING_ | NUMBER_
     ;
-    
+
+select
+    : SELECT ASTERISK_? cols?  FROM  table WHERE condition
+    ;
+condition
+    : colName EQ_ colValue
+    ;
+colName
+    : identifier
+    ;
+colValue
+    : identifier
+    ;
+cols
+    : col (COMMA_ col)*
+    ;
+col
+    : identifier
+    ;
+table
+    : identifier
+    ;
+
+

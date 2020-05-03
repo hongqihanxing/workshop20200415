@@ -6,7 +6,10 @@ import com.google.common.collect.ImmutableList;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import shardingsphere.workshop.mysql.proxy.fixture.MySQLAuthenticationHandler;
@@ -17,6 +20,9 @@ import shardingsphere.workshop.mysql.proxy.todo.packet.MySQLEofPacket;
 import shardingsphere.workshop.mysql.proxy.todo.packet.MySQLColumnDefinition41Packet;
 import shardingsphere.workshop.mysql.proxy.todo.packet.MySQLFieldCountPacket;
 import shardingsphere.workshop.mysql.proxy.todo.packet.MySQLTextResultSetRowPacket;
+import shardingsphere.workshop.mysql.proxy.todo.vo.User;
+import shardingsphere.workshop.parser.engine.ParseEngine;
+import shardingsphere.workshop.parser.statement.segment.SelectSegment;
 
 /**
  * Frontend channel inbound handler.
@@ -28,7 +34,19 @@ public final class FrontendChannelInboundHandler extends ChannelInboundHandlerAd
     private final MySQLAuthenticationHandler authHandler = new MySQLAuthenticationHandler();
     
     private boolean authorized;
-    
+
+    private static List<User> data = new ArrayList<>();
+
+    static {
+        data.addAll(Arrays.asList(
+            User.builder().id(1).name("user1").build(),
+            User.builder().id(2).name("user2").build(),
+            User.builder().id(3).name("user3").build(),
+            User.builder().id(4).name("user4").build(),
+            User.builder().id(5).name("user5").build()
+        ));
+    }
+
     @Override
     public void channelActive(final ChannelHandlerContext context) {
         authHandler.handshake(context);
@@ -65,20 +83,24 @@ public final class FrontendChannelInboundHandler extends ChannelInboundHandlerAd
     
     private void executeCommand(final ChannelHandlerContext context, final MySQLPacketPayload payload) {
         Preconditions.checkState(0x03 == payload.readInt1(), "only support COM_QUERY command type");
-        // TODO 1. Read SQL from payload, then system.out it
-        // TODO 2. Return mock MySQLPacket to client (header: MySQLFieldCountPacket + MySQLColumnDefinition41Packet + MySQLEofPacket, content: MySQLTextResultSetRowPacket
-        // TODO 3. Parse SQL, return actual data according to SQLStatement
-
-        System.out.println("查询Sql:"+payload.readStringEOF());
+        //查询sql：select * from t_user where id=1
+        String sql = payload.readStringEOF();
+        log.info("查询Sql:" + sql);
+        SelectSegment selectSegment = (SelectSegment) ParseEngine.parse(sql);
+        Integer id = Integer.parseInt(selectSegment.getConditionSegment().getColValueSegment().getIdentifier().getValue());
+        Optional<User> user = data.stream().filter(item->item.getId().equals(id)).findFirst();
 
 
         context.write(new MySQLFieldCountPacket(1, 2));
-        context.write(new MySQLColumnDefinition41Packet(2, 0, "sharding_db", "t_order", "t_order", "user_id", "user_id", 100, MySQLColumnType.MYSQL_TYPE_STRING,0));
-        context.write(new MySQLColumnDefinition41Packet(3, 0, "sharding_db", "t_order", "t_order", "order_id", "order_id", 100, MySQLColumnType.MYSQL_TYPE_STRING,0));
+        context.write(new MySQLColumnDefinition41Packet(2, 0, "sharding_db", "t_user", "t_user", "id", "id", 100, MySQLColumnType.MYSQL_TYPE_INT24,0));
+        context.write(new MySQLColumnDefinition41Packet(3, 0, "sharding_db", "t_user", "t_user", "name", "name", 100, MySQLColumnType.MYSQL_TYPE_STRING,0));
         context.write(new MySQLEofPacket(4));
-        context.write(new MySQLTextResultSetRowPacket(5, Arrays.asList(1,200)));
-        context.write(new MySQLTextResultSetRowPacket(6, Arrays.asList(2,300)));
-        context.write(new MySQLEofPacket(7));
+        if(user.isPresent()){
+            context.write(new MySQLTextResultSetRowPacket(5, Arrays.asList(user.get().getId(),user.get().getName())));
+            context.write(new MySQLEofPacket(6));
+        }else {
+            context.write(new MySQLEofPacket(5));
+        }
         context.flush();
     }
 }
